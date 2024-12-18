@@ -11,12 +11,12 @@ internal class PiPlateServer
 
     private readonly IProcessInstance _pythonInstance;
 
-    public PiPlateServer()
+    internal PiPlateServer()
     {
         _pythonInstance = Instance.Start("python", "ZipZapPy.py", PythonEventHandlers.HandleOutput!, PythonEventHandlers.HandleError!);
     }
 
-    public Task<List<string>> SendAsync(PiPlateRelayCommand command)
+    internal Task<List<string>> SendAsync(PiPlateRelayCommand command)
     {
         if (!command.IsConfigured)
             throw new PiPlateRelayException("Next command is not fully configured.");
@@ -25,7 +25,7 @@ internal class PiPlateServer
         return result;
     }
 
-    public List<string> Send(PiPlateRelayCommand command)
+    internal List<string> Send(PiPlateRelayCommand command)
     {
         if (!command.IsConfigured)
             throw new PiPlateRelayException("Next command is not fully configured.");
@@ -199,23 +199,23 @@ internal class PiPlateServer
     };
 }
 
-public static class PythonEventHandlers
+internal static class PythonEventHandlers
 {
-    public readonly static Queue<string> OutputQueue = new();
-    public readonly static Queue<string> ErrorQueue = new();
+    internal readonly static Queue<string> OutputQueue = new();
+    internal readonly static Queue<string> ErrorQueue = new();
 
-    public static void HandleOutput(object _, string message)
+    internal static void HandleOutput(object _, string message)
     {
         OutputQueue.Enqueue(message);
     }
 
-    public static void HandleError(object _, string message)
+    internal static void HandleError(object _, string message)
     {
         ErrorQueue.Enqueue(message);
     }
 }
 
-public enum RelayCommands
+internal enum RelayCommands
 {
     Toggle,
     On,
@@ -223,14 +223,14 @@ public enum RelayCommands
     State
 }
 
-public enum LEDCommands
+internal enum LEDCommands
 {
     Set,
     Clear,
     Toggle
 }
 
-public enum SystemCommands
+internal enum SystemCommands
 {
     GetId,
     GetFWRevision,

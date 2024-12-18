@@ -1,14 +1,21 @@
-# PiPlateRelay
-PiPlate Relay Source - For product https://pi-plates.com/product/relaykit/
+# PiPlateRelayDotNet
+This is a C# wrapper for the PiPlateRELAY board.
+It builds a python server which interacts natively with the PiPlate.
+A c# class library is then used as a wrapper to interact with the python server.
 
-Intro:
+By referencing this library, you can easily control the board.
+```c#
 
-This simple library can be referenced from NuGet or Copy the .cs file(s) direct from this repo into your program
+var service = new PiPlateService();
+await service.TryInitializeAsync();
 
-Usage:
+await service.System.GetBoardInfoAsync(0);
 
-Simple usage - this is a class with static functions.  Initlize the GPIO first by calling .Initilize();
+await service.Relay.On(0, 1);
 
-After that, call the public API calls. They should be self explanatory. 
+await service.Relay.Off(0, 1);
 
-Calls end in Async only because there are some Task Delays. Later, the API may support a more Async API.
+await service.Relay.Toggle(0, 1;
+
+var status = await service.Relay.Status(0);
+```

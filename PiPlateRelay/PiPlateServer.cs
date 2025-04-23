@@ -9,11 +9,26 @@ namespace PiPlateRelay;
 internal class PiPlateServer
 {
 
-    private readonly IProcessInstance _pythonInstance;
+    private IProcessInstance _pythonInstance;
+
+    internal readonly Queue<string> OutputQueue = new();
+
+    internal readonly Queue<string> ErrorQueue = new();
 
     internal PiPlateServer()
     {
-        _pythonInstance = Instance.Start("python", "ZipZapPy.py", PythonEventHandlers.HandleOutput!, PythonEventHandlers.HandleError!);
+        _pythonInstance = Instance.Start("python", "ZipZapPy.py", HandleOutput!, HandleError!);
+    }
+
+    internal void HandleOutput(object _, string message)
+    {
+        OutputQueue.Enqueue(message);
+    }
+
+    internal void HandleError(object _, string message)
+    {
+        Console.WriteLine(message);
+        RestartPythonServer();
     }
 
     internal Task<List<string>> SendAsync(PiPlateRelayCommand command)
@@ -33,6 +48,12 @@ internal class PiPlateServer
         var result = SendCommand(command.CommandType, command.BoardAddress ?? 0, command.CommandArg);
         command.CommandArg = default;
         return result;
+    }
+
+    internal void RestartPythonServer()
+    {
+        _pythonInstance.Kill();
+        _pythonInstance = Instance.Start("python", "ZipZapPy.py", HandleOutput!, HandleError!);
     }
 
     internal async Task<List<string>> SendCommandAsync<T>(T command, int boardAddress, int? arg = default)
@@ -94,13 +115,13 @@ internal class PiPlateServer
         return AwaitServerResponse();
     }
 
-    private static List<string> AwaitServerResponse()
+    private List<string> AwaitServerResponse()
     {
         var response = new List<string>();
         var sw = new Stopwatch();
         while (true)
         {
-            if (PythonEventHandlers.OutputQueue.TryDequeue(out var r))
+            if (OutputQueue.TryDequeue(out var r))
             {
                 if (!string.IsNullOrEmpty(r))
                 {
@@ -111,8 +132,11 @@ internal class PiPlateServer
                         sw.Start();
                 }
             }
-            if (sw.IsRunning && sw.ElapsedMilliseconds > 5)
-                break;
+            else
+            {
+                if (sw.IsRunning && sw.ElapsedMilliseconds > 5)
+                    break;
+            }
 
             Thread.Sleep(1);
         }
@@ -197,22 +221,6 @@ internal class PiPlateServer
         { SystemCommands.GetAddress, "system.getAddress" },
         { SystemCommands.Reset, "system.reset" },
     };
-}
-
-internal static class PythonEventHandlers
-{
-    internal readonly static Queue<string> OutputQueue = new();
-    internal readonly static Queue<string> ErrorQueue = new();
-
-    internal static void HandleOutput(object _, string message)
-    {
-        OutputQueue.Enqueue(message);
-    }
-
-    internal static void HandleError(object _, string message)
-    {
-        ErrorQueue.Enqueue(message);
-    }
 }
 
 internal enum RelayCommands
